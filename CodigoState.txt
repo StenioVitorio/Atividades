@@ -1,0 +1,112 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Main.java to edit this template
+ */
+package javaatvstenio04112024_2;
+//o nome do packge é o  nome que tem no projeto
+
+
+abstract class PersonagemState {
+    public abstract void atacar();
+    public abstract void defender();
+    public abstract void esquivar();
+}
+
+class FogoState extends PersonagemState {
+    @Override
+    public void atacar() {
+        System.out.println("Seu ataque causou 50 de dano + 20 de bônus de fogo.");
+    }
+
+    @Override
+    public void defender() {
+        System.out.println("Sua barreira absorveu 30 de dano.");
+    }
+
+    @Override
+    public void esquivar() {
+        System.out.println("Sua evasão foi de 5 metros.");
+    }
+}
+
+class TerraState extends PersonagemState {
+    @Override
+    public void atacar() {
+        System.out.println("Seu ataque causou 40 de dano.");
+    }
+
+    @Override
+    public void defender() {
+        System.out.println("Sua barreira absorveu 60 de dano + 30 de bônus de terra.");
+    }
+
+    @Override
+    public void esquivar() {
+        System.out.println("Sua evasão foi de 3 metros.");
+    }
+}
+
+class WindState extends PersonagemState {
+    @Override
+    public void atacar() {
+        System.out.println("Seu ataque causou 35 de dano.");
+    }
+
+    @Override
+    public void defender() {
+        System.out.println("Sua barreira absorveu 25 de dano.");
+    }
+
+    @Override
+    public void esquivar() {
+        System.out.println("Sua evasão foi de 10 metros + 5 de bônus de vento.");
+    }
+}
+
+class Personagem {
+    private PersonagemState estado;
+
+    public void setEstado(PersonagemState estado) {
+        this.estado = estado;
+    }
+
+    public void atacar() {
+        estado.atacar();
+    }
+
+    public void defender() {
+        estado.defender();
+    }
+
+    public void esquivar() {
+        estado.esquivar();
+    }
+}
+
+
+public class JavaAtvStenio04112024_2 {
+
+    /**
+     * @param args the command line arguments
+     */
+    public static void main(String[] args) {
+
+        Personagem personagem = new Personagem();
+
+        personagem.setEstado(new FogoState());
+        personagem.atacar();
+        personagem.defender();
+        personagem.esquivar();
+
+        personagem.setEstado(new TerraState());
+        personagem.atacar();
+        personagem.defender();
+        personagem.esquivar();
+
+        personagem.setEstado(new WindState());
+        personagem.atacar();
+        personagem.defender();
+        personagem.esquivar();
+    }
+    
+}

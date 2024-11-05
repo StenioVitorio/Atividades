@@ -1,0 +1,79 @@
+
+package javaatvstenio04112024;
+//nome do package é o que ta no projeto
+
+class DbConnection {
+    private static DbConnection instance;
+
+    private DbConnection() {
+        System.out.println("Conexão com o banco de dados estabelecida.");
+    }
+
+    public static DbConnection getInstancia() {
+        if (instance == null) {
+            instance = new DbConnection();
+        }
+        return instance;
+    }
+
+    public void insert(String query) {
+        try {
+            System.out.println("Executando query de INSERT: " + query);
+        } catch (Exception e) {
+            System.out.println("Erro ao executar INSERT: " + e.getMessage());
+        }
+    }
+
+    public void select(String query) {
+        try {
+            System.out.println("Executando query de SELECT: " + query);
+            System.out.println("Resultados: [Linha 1, Linha 2, Linha 3]");
+        } catch (Exception e) {
+            System.out.println("Erro ao executar SELECT: " + e.getMessage());
+        }
+    }
+
+    public void update(String query) {
+        try {
+            System.out.println("Executando query de UPDATE: " + query);
+            System.out.println("Linhas afetadas: 1");
+        } catch (Exception e) {
+            System.out.println("Erro ao executar UPDATE: " + e.getMessage());
+        }
+    }
+
+    public void delete(String query) {
+        try {
+            System.out.println("Executando query de DELETE: " + query);
+            System.out.println("Linhas afetadas: 1");
+        } catch (Exception e) {
+            System.out.println("Erro ao executar DELETE: " + e.getMessage());
+        }
+    }
+
+    public void close() {
+        try {
+            System.out.println("Conexão com o banco de dados fechada.");
+            instance = null;  
+        } catch (Exception e) {
+            System.out.println("Erro ao fechar a conexão: " + e.getMessage());
+        }
+    }
+}
+public class JavaAtvStenio04112024 {
+
+    public static void main(String[] args) {
+        DbConnection db = DbConnection.getInstancia();
+
+        db.insert("INSERT INTO usuarios (nome, email) VALUES ('Carlos', 'carlos@exemplo.com')");
+        db.select("SELECT * FROM usuarios");
+        db.update("UPDATE usuarios SET email = 'carlos_novo@exemplo.com' WHERE nome = 'Carlos'");
+        db.delete("DELETE FROM usuarios WHERE nome = 'Carlos'");
+
+        db.close();
+
+        DbConnection db2 = DbConnection.getInstancia();
+        db2.select("SELECT * FROM usuarios");
+    }
+    
+}
