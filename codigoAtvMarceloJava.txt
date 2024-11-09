@@ -1,0 +1,394 @@
+package javagerenciadorcontatos_stenio_08_11_2024;
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+
+class Contato {
+    private int id;
+    private String nome;
+    private String email;
+    private String telefone;
+    private String celular;
+
+    public Contato(String nome, String email, String telefone, String celular) {
+        this.nome = nome;
+        this.email = email;
+        this.telefone = telefone;
+        this.celular = celular;
+    }
+
+    public Contato(int id, String nome, String email, String telefone, String celular) {
+        this.id = id;
+        this.nome = nome;
+        this.email = email;
+        this.telefone = telefone;
+        this.celular = celular;
+    }
+
+    public int getId() { return id; }
+    public String getNome() { return nome; }
+    public String getEmail() { return email; }
+    public String getTelefone() { return telefone; }
+    public String getCelular() { return celular; }
+
+    @Override
+    public String toString() {
+        return "ID: " + id + ", Nome: " + nome + ", Email: " + email + ", Telefone: " + telefone + ", Celular: " + celular;
+    }
+}
+
+interface DatabaseInterface {
+    void adicionarContato(Contato contato);
+    void editarContato(int id, String nome, String email, String telefone, String celular);
+    void removerContato(int id);
+    List<Contato> listarContatos();
+}
+
+class MemoriaDatabase implements DatabaseInterface {
+    private List<Contato> contatos = new ArrayList<>();
+    private int idCounter = 1;
+
+    @Override
+    public void adicionarContato(Contato contato) {
+        contato = new Contato(idCounter++, contato.getNome(), contato.getEmail(), contato.getTelefone(), contato.getCelular());
+        contatos.add(contato);
+    }
+
+    @Override
+    public void editarContato(int id, String nome, String email, String telefone, String celular) {
+        for (int i = 0; i < contatos.size(); i++) {
+            if (contatos.get(i).getId() == id) {
+                contatos.set(i, new Contato(id, nome, email, telefone, celular));
+                return;
+            }
+        }
+    }
+
+    @Override
+    public void removerContato(int id) {
+        contatos.removeIf(contato -> contato.getId() == id);
+    }
+
+    @Override
+    public List<Contato> listarContatos() {
+        return new ArrayList<>(contatos);
+    }
+}
+//precisa por o bd da sua maquina
+class PostgreSQLDatabase implements DatabaseInterface {
+    private Connection connection;
+    private static final String URL = "jdbc:postgresql://localhost:5433/db_agendamentos";
+    private static final String USER = "postgres";
+    private static final String PASSWORD = "senha";
+
+
+    public PostgreSQLDatabase() {
+        conectar();
+    }
+
+    private void conectar() {
+        try {
+            connection = DriverManager.getConnection(URL, USER, PASSWORD);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void adicionarContato(Contato contato) {
+        String sql = "INSERT INTO contatos (nome, email, telefone, celular) VALUES (?, ?, ?, ?)";
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, contato.getNome());
+            stmt.setString(2, contato.getEmail());
+            stmt.setString(3, contato.getTelefone());
+            stmt.setString(4, contato.getCelular());
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void editarContato(int id, String nome, String email, String telefone, String celular) {
+        String sql = "UPDATE contatos SET nome = ?, email = ?, telefone = ?, celular = ? WHERE id = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, nome);
+            stmt.setString(2, email);
+            stmt.setString(3, telefone);
+            stmt.setString(4, celular);
+            stmt.setInt(5, id);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void removerContato(int id) {
+        String sql = "DELETE FROM contatos WHERE id = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setInt(1, id);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public List<Contato> listarContatos() {
+        List<Contato> contatos = new ArrayList<>();
+        String sql = "SELECT * FROM contatos";
+        try (Statement stmt = connection.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                int id = rs.getInt("id");
+                String nome = rs.getString("nome");
+                String email = rs.getString("email");
+                String telefone = rs.getString("telefone");
+                String celular = rs.getString("celular");
+                contatos.add(new Contato(id, nome, email, telefone, celular));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return contatos;
+    }
+}
+
+class GerenciadorContatos {
+    private final DatabaseInterface database;
+
+    public GerenciadorContatos(DatabaseInterface database) {
+        this.database = database;
+    }
+
+    public void adicionarContato(Contato contato) {
+        database.adicionarContato(contato);
+    }
+
+    public void editarContato(int id, String nome, String email, String telefone, String celular) {
+        database.editarContato(id, nome, email, telefone, celular);
+    }
+
+    public void removerContato(int id) {
+        database.removerContato(id);
+    }
+
+    public List<Contato> listarContatos() {
+        return database.listarContatos();
+    }
+}
+class InterfaceConsole {
+    private GerenciadorContatos gerenciador;
+    private Scanner scanner;
+
+    public InterfaceConsole(DatabaseInterface database) {
+        this.gerenciador = new GerenciadorContatos(database);
+        this.scanner = new Scanner(System.in);
+        iniciar();
+    }
+
+    private void iniciar() {
+        int opcao;
+        do {
+            System.out.println("\n1. Adicionar Contato");
+            System.out.println("2. Editar Contato");
+            System.out.println("3. Remover Contato");
+            System.out.println("4. Listar Contatos");
+            System.out.println("5. Sair");
+            System.out.print("Escolha uma opção: ");
+            opcao = scanner.nextInt();
+            scanner.nextLine();
+
+            switch (opcao) {
+                case 1 -> adicionarContato();
+                case 2 -> editarContato();
+                case 3 -> removerContato();
+                case 4 -> listarContatos();
+                case 5 -> System.out.println("Saindo...");
+                default -> System.out.println("Opção inválida!");
+            }
+        } while (opcao != 5);
+    }
+
+    private void adicionarContato() {
+        System.out.print("Nome: ");
+        String nome = scanner.nextLine();
+        System.out.print("Email: ");
+        String email = scanner.nextLine();
+        System.out.print("Telefone: ");
+        String telefone = scanner.nextLine();
+        System.out.print("Celular: ");
+        String celular = scanner.nextLine();
+
+        Contato contato = new Contato(nome, email, telefone, celular);
+        gerenciador.adicionarContato(contato);
+    }
+
+    private void editarContato() {
+        System.out.print("ID do contato para editar: ");
+        int id = scanner.nextInt();
+        scanner.nextLine();
+        System.out.print("Novo Nome: ");
+        String nome = scanner.nextLine();
+        System.out.print("Novo Email: ");
+        String email = scanner.nextLine();
+        System.out.print("Novo Telefone: ");
+        String telefone = scanner.nextLine();
+        System.out.print("Novo Celular: ");
+        String celular = scanner.nextLine();
+
+        gerenciador.editarContato(id, nome, email, telefone, celular);
+    }
+
+    private void removerContato() {
+        System.out.print("ID do contato para remover: ");
+        int id = scanner.nextInt();
+        scanner.nextLine();
+        gerenciador.removerContato(id);
+    }
+
+    private void listarContatos() {
+        System.out.println("Contatos:");
+        for (Contato contato : gerenciador.listarContatos()) {
+            System.out.println(contato);
+        }
+    }
+}
+
+class InterfaceSwing {
+    private GerenciadorContatos gerenciador;
+
+    public InterfaceSwing(DatabaseInterface database) {
+        this.gerenciador = new GerenciadorContatos(database);
+        iniciar();
+    }
+
+    private void iniciar() {
+        JFrame frame = new JFrame("Gerenciador de Contatos");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(500, 500);
+
+        DefaultListModel<String> listModel = new DefaultListModel<>();
+        JList<String> listaContatos = new JList<>(listModel);
+        atualizarLista(listModel);
+
+        JTextField nomeField = new JTextField();
+        JTextField emailField = new JTextField();
+        JTextField telefoneField = new JTextField();
+        JTextField celularField = new JTextField();
+
+        JButton adicionarButton = new JButton("Adicionar");
+        JButton editarButton = new JButton("Editar Selecionado");
+        JButton removerButton = new JButton("Remover Selecionado");
+
+        adicionarButton.addActionListener(e -> {
+            String nome = nomeField.getText();
+            String email = emailField.getText();
+            String telefone = telefoneField.getText();
+            String celular = celularField.getText();
+
+            Contato contato = new Contato(nome, email, telefone, celular);
+            gerenciador.adicionarContato(contato);
+            atualizarLista(listModel);
+
+            nomeField.setText("");
+            emailField.setText("");
+            telefoneField.setText("");
+            celularField.setText("");
+        });
+
+        editarButton.addActionListener(e -> {
+            int index = listaContatos.getSelectedIndex();
+            if (index == -1) {
+                JOptionPane.showMessageDialog(frame, "Selecione um contato para editar.");
+                return;
+            }
+
+            Contato contatoSelecionado = gerenciador.listarContatos().get(index);
+            String novoNome = JOptionPane.showInputDialog("Novo Nome:", contatoSelecionado.getNome());
+            String novoEmail = JOptionPane.showInputDialog("Novo Email:", contatoSelecionado.getEmail());
+            String novoTelefone = JOptionPane.showInputDialog("Novo Telefone:", contatoSelecionado.getTelefone());
+            String novoCelular = JOptionPane.showInputDialog("Novo Celular:", contatoSelecionado.getCelular());
+
+            gerenciador.editarContato(contatoSelecionado.getId(), novoNome, novoEmail, novoTelefone, novoCelular);
+            atualizarLista(listModel);
+        });
+
+        removerButton.addActionListener(e -> {
+            int index = listaContatos.getSelectedIndex();
+            if (index == -1) {
+                JOptionPane.showMessageDialog(frame, "Selecione um contato para remover.");
+                return;
+            }
+
+            Contato contatoSelecionado = gerenciador.listarContatos().get(index);
+            gerenciador.removerContato(contatoSelecionado.getId());
+            atualizarLista(listModel);
+        });
+
+        JPanel panel = new JPanel(new GridLayout(8, 1));
+        panel.add(new JLabel("Nome:"));
+        panel.add(nomeField);
+        panel.add(new JLabel("Email:"));
+        panel.add(emailField);
+        panel.add(new JLabel("Telefone:"));
+        panel.add(telefoneField);
+        panel.add(new JLabel("Celular:"));
+        panel.add(celularField);
+        panel.add(adicionarButton);
+        panel.add(editarButton);
+        panel.add(removerButton);
+
+        frame.add(new JScrollPane(listaContatos), BorderLayout.CENTER);
+        frame.add(panel, BorderLayout.SOUTH);
+        frame.setVisible(true);
+    }
+
+    private void atualizarLista(DefaultListModel<String> listModel) {
+        listModel.clear();
+        for (Contato contato : gerenciador.listarContatos()) {
+            listModel.addElement(contato.toString());
+        }
+    }
+}
+
+public class JavaGerenciadorContatos_Stenio_08_11_2024 {
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+
+        System.out.println("Escolha o tipo de armazenamento:");
+        System.out.println("1. Memória RAM");
+        System.out.println("2. Banco de Dados PostgreSQL");
+        System.out.print("Opção: ");
+        int escolhaArmazenamento = scanner.nextInt();
+
+        DatabaseInterface database;
+        if (escolhaArmazenamento == 1) {
+            database = new MemoriaDatabase();
+        } else if (escolhaArmazenamento == 2) {
+            database = new PostgreSQLDatabase();
+        } else {
+            System.out.println("Opção inválida.");
+            return;
+        }
+
+        System.out.println("Escolha o tipo de interface:");
+        System.out.println("1. Console");
+        System.out.println("2. Interface Swing");
+        System.out.print("Opção: ");
+        int escolhaInterface = scanner.nextInt();
+
+        if (escolhaInterface == 1) {
+            new InterfaceConsole(database);
+        } else if (escolhaInterface == 2) {
+            SwingUtilities.invokeLater(() -> new InterfaceSwing(database));
+        } else {
+            System.out.println("Opção inválida.");
+        }
+    }
+}
